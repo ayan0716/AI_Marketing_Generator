@@ -1,0 +1,15 @@
+# Optional: run MongoDB locally instead of using MongoDB Atlas
+#   docker compose up -d
+# then set MONGODB_URI=mongodb://localhost:27017 in backend/.env
+services:
+  mongo:
+    image: mongo:7
+    container_name: ai-marketing-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
