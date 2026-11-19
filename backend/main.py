@@ -1,33 +1,29 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
 import database
 import llm
 from config import get_settings
+from content_routes import router as content_router
 from schemas import LANGUAGES, CampaignInput, Objective, Platform, Tone
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await database.connect()
     yield
     await database.disconnect()
-
-
-app = FastAPI(title="AI Marketing Content Generator", version="1.0.0-phase1", lifespan=lifespan)
+app = FastAPI(title="AI Marketing Content Generator", version="2.0.0-phase2", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(content_router)  # Phase 2
 
 
 # ---------- helpers ----------
@@ -36,16 +32,12 @@ def _oid(value: str) -> ObjectId:
         return ObjectId(value)
     except (InvalidId, TypeError):
         raise HTTPException(status_code=404, detail="Campaign not found.")
-
-
 def _ser(doc: dict) -> dict:
     out = {}
     for k, v in doc.items():
         key = "id" if k == "_id" else k
         out[key] = str(v) if isinstance(v, ObjectId) else (v.isoformat() if isinstance(v, datetime) else v)
     return out
-
-
 @app.exception_handler(RequestValidationError)
 async def validation_handler(_: Request, exc: RequestValidationError):
     errors = {}
@@ -54,16 +46,12 @@ async def validation_handler(_: Request, exc: RequestValidationError):
         msg = e["msg"].removeprefix("Value error, ")
         errors.setdefault(field, msg)
     return JSONResponse(status_code=422, content={"detail": "Please fix the highlighted fields.", "errors": errors})
-
-
 # ---------- routes ----------
 @app.get("/api/health")
 async def health():
     s = get_settings()
     await database.get_db().command("ping")
     return {"status": "ok", "database": "mongodb (mock)" if s.use_mock_db else "mongodb", "llm_provider": s.llm_provider}
-
-
 @app.get("/api/llm/test")
 async def llm_test():
     """Verifies the first LLM API request works (Phase 1, Step 6)."""
@@ -73,8 +61,6 @@ async def llm_test():
         raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LLM connection failed: {e}")
-
-
 @app.get("/api/options")
 async def options():
     return {
@@ -83,8 +69,6 @@ async def options():
         "tones": [t.value for t in Tone],
         "languages": LANGUAGES,
     }
-
-
 @app.post("/api/strategies", status_code=201)
 async def create_strategy(data: CampaignInput):
     """Brief in -> structured marketing strategy out (saved to MongoDB)."""
@@ -92,10 +76,8 @@ async def create_strategy(data: CampaignInput):
         strategy, provider, model = await llm.generate_strategy(data)
     except llm.LLMError as e:
         raise HTTPException(status_code=502, detail=str(e))
-
     db = database.get_db()
     now = datetime.now(timezone.utc)
-
     product = await db.products.insert_one(
         {"name": data.product_name, "description": data.product_description, "created_at": now}
     )
@@ -120,20 +102,15 @@ async def create_strategy(data: CampaignInput):
         "created_at": now,
     }
     sres = await db.strategies.insert_one(strategy_doc)
-
     return {
         "campaign": _ser({**campaign_doc, "_id": campaign.inserted_id, "product_id": product.inserted_id}),
         "strategy": _ser({**strategy_doc, "_id": sres.inserted_id, "campaign_id": campaign.inserted_id}),
     }
-
-
 @app.get("/api/campaigns")
 async def list_campaigns(limit: int = 50):
     db = database.get_db()
     cursor = db.campaigns.find({}, {"product_description": 0}).sort("created_at", -1).limit(min(limit, 100))
     return [_ser(c) async for c in cursor]
-
-
 @app.get("/api/campaigns/{campaign_id}")
 async def get_campaign(campaign_id: str):
     db = database.get_db()
@@ -143,8 +120,6 @@ async def get_campaign(campaign_id: str):
         raise HTTPException(status_code=404, detail="Campaign not found.")
     strategy = await db.strategies.find_one({"campaign_id": oid})
     return {"campaign": _ser(campaign), "strategy": _ser(strategy) if strategy else None}
-
-
 @app.delete("/api/campaigns/{campaign_id}", status_code=204)
 async def delete_campaign(campaign_id: str):
     db = database.get_db()

@@ -1,5 +1,4 @@
 const BASE = "/api";
-
 export class ApiError extends Error {
   constructor(message, status, fieldErrors = {}) {
     super(message);
@@ -7,7 +6,6 @@ export class ApiError extends Error {
     this.fieldErrors = fieldErrors;
   }
 }
-
 async function request(path, options = {}) {
   let res;
   try {
@@ -26,7 +24,6 @@ async function request(path, options = {}) {
   }
   return body;
 }
-
 export const api = {
   health: () => request("/health"),
   llmTest: () => request("/llm/test"),
@@ -35,4 +32,13 @@ export const api = {
   listCampaigns: () => request("/campaigns"),
   getCampaign: (id) => request(`/campaigns/${id}`),
   deleteCampaign: (id) => request(`/campaigns/${id}`, { method: "DELETE" }),
+  // ---- Phase 2: platform content ----
+  platforms: () => request("/content/platforms"),
+  listContent: (id) => request(`/campaigns/${id}/content`),
+  generateContent: (id, platforms, variations) =>
+    request(`/campaigns/${id}/content`, { method: "POST", body: JSON.stringify({ platforms, variations }) }),
+  regenerate: (id, platform, body) =>
+    request(`/campaigns/${id}/content/${platform}/regenerate`, { method: "POST", body: JSON.stringify(body) }),
+  selectVariation: (id, platform, index) =>
+    request(`/campaigns/${id}/content/${platform}/select`, { method: "PUT", body: JSON.stringify({ index }) }),
 };

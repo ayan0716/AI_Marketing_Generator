@@ -1,9 +1,8 @@
 import { useState } from "react";
 import {
   Lightbulb, Users, Star, Mic2, MousePointerClick, LayoutGrid, BarChart3,
-  Copy, Download, Check, Plus, AlertTriangle, Ban, CheckCircle2,
+  Copy, Download, Check, Plus, AlertTriangle, Ban, CheckCircle2, Megaphone, ArrowRight,
 } from "lucide-react";
-
 function Card({ icon: Icon, title, children, className = "" }) {
   return (
     <section className={`card s-card ${className}`}>
@@ -12,20 +11,20 @@ function Card({ icon: Icon, title, children, className = "" }) {
     </section>
   );
 }
-
 const List = ({ items }) => (
   <ul className="plain">{items.map((i, n) => <li key={n}>{i}</li>)}</ul>
 );
-
 const Tags = ({ items, kind = "" }) => (
   <div className="tags">{items.map((i, n) => <span key={n} className={`tag ${kind}`}>{i}</span>)}</div>
 );
-
-export default function StrategyView({ result, onNew }) {
+export default function StrategyView({ result, onNew, onContent: onContentProp }) {
+  // Diagnostic: if App.jsx was not updated, say so instead of silently doing nothing.
+  const onContent = onContentProp || (() => alert("App.jsx is not updated: StrategyView did not receive the onContent prop. Replace src/App.jsx with the Phase 2 version."));
   const { campaign, strategy } = result;
   const s = strategy.data;
   const [copied, setCopied] = useState(false);
-
+  // Safety net: if App.jsx does not pass onContent, say so instead of doing nothing.
+  const goContent = onContent || (() => alert("App.jsx is missing the Phase 2 'content' view. Replace src/App.jsx with the Phase 2 version."));
   const json = JSON.stringify(s, null, 2);
   const copy = async () => {
     await navigator.clipboard.writeText(json);
@@ -41,7 +40,6 @@ export default function StrategyView({ result, onNew }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   return (
     <div className="strategy">
       <div className="result-bar">
@@ -55,17 +53,16 @@ export default function StrategyView({ result, onNew }) {
         <div className="actions">
           <button className="btn ghost sm" onClick={copy}>{copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Copied" : "Copy JSON"}</button>
           <button className="btn ghost sm" onClick={download}><Download size={15} /> Download</button>
-          <button className="btn primary sm" onClick={onNew}><Plus size={15} /> New campaign</button>
+          <button className="btn sm" onClick={onNew}><Plus size={15} /> New campaign</button>
+          <button className="btn primary sm" onClick={goContent}><Megaphone size={15} /> Generate content</button>
         </div>
       </div>
-
       <section className="hero">
         <p className="eyebrow">Campaign idea · {campaign.product_name}</p>
         <h2>{s.campaign_idea.title}</h2>
         <p className="hook">"{s.campaign_idea.hook}"</p>
         <p className="concept">{s.campaign_idea.concept}</p>
       </section>
-
       <div className="grid-2 gap">
         <Card icon={Users} title="Target audience">
           <p className="lead">{s.target_audience.summary}</p>
@@ -73,7 +70,6 @@ export default function StrategyView({ result, onNew }) {
           <h4>Psychographics</h4><Tags items={s.target_audience.psychographics} />
           <h4>Pain points</h4><List items={s.target_audience.pain_points} />
         </Card>
-
         <Card icon={Mic2} title="Content tone">
           <p className="lead">{s.content_tone.voice}</p>
           <h4>Style guidelines</h4><List items={s.content_tone.style_guidelines} />
@@ -81,7 +77,6 @@ export default function StrategyView({ result, onNew }) {
           <h4><Ban size={13} className="bad" /> Words to avoid</h4><Tags items={s.content_tone.words_to_avoid} kind="bad" />
         </Card>
       </div>
-
       <Card icon={Star} title="Key selling points">
         <div className="usp-grid">
           {s.key_selling_points.map((k, i) => (
@@ -93,7 +88,6 @@ export default function StrategyView({ result, onNew }) {
           ))}
         </div>
       </Card>
-
       <div className="grid-2 gap">
         <Card icon={MousePointerClick} title="Call to action" className="cta">
           <div className="cta-main">{s.call_to_action.primary}</div>
@@ -104,7 +98,6 @@ export default function StrategyView({ result, onNew }) {
           <Tags items={s.success_metrics} kind="metric" />
         </Card>
       </div>
-
       <Card icon={LayoutGrid} title="Suggested content types">
         <div className="types">
           {s.suggested_content_types.map((t, i) => (
@@ -116,12 +109,13 @@ export default function StrategyView({ result, onNew }) {
           ))}
         </div>
       </Card>
-
-      <p className="next"><Lightbulb size={14} /> This strategy is saved and will drive content generation in the next phases.</p>
+      <button className="btn primary lg" onClick={goContent}>
+        <Megaphone size={18} /> Turn this strategy into platform content <ArrowRight size={17} />
+      </button>
+      <p className="next"><Lightbulb size={14} /> This strategy is saved and drives the Phase 2 content generation.</p>
     </div>
   );
 }
-
 export function ErrorBanner({ message, onClose }) {
   return (
     <div className="banner">

@@ -32,7 +32,6 @@
   --hero-glow: radial-gradient(700px 380px at 85% 0%, rgba(61, 220, 255, 0.16), transparent 60%), radial-gradient(600px 360px at 0% 20%, rgba(25, 227, 161, 0.12), transparent 60%);
   --hl: #19e3a1; --shadow: 0 10px 30px rgba(0, 0, 0, 0.35); --good: #34d399; --bad: #fb7185; --warn: #fbbf24;
 }
-
 /* ================= BASE ================= */
 * { box-sizing: border-box; margin: 0; }
 html { scroll-behavior: smooth; }
@@ -49,7 +48,6 @@ button { font-family: inherit; cursor: pointer; }
 .page { flex: 1; padding-top: 34px; padding-bottom: 64px; max-width: 1000px; }
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: 32px; margin-bottom: 6px; }
-
 /* ================= NAV ================= */
 .nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--line); }
 .nav-in { display: flex; align-items: center; gap: 24px; height: 68px; }
@@ -71,7 +69,6 @@ button { font-family: inherit; cursor: pointer; }
 .led.ok { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
 .led.bad { background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 25%, transparent); }
 .menu-btn { display: none; background: var(--surface); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 7px; }
-
 /* ================= PRIMITIVES ================= */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 26px; box-shadow: var(--shadow); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 600; font-size: 14px; padding: 10px 16px; transition: 0.15s; }
@@ -91,7 +88,6 @@ button { font-family: inherit; cursor: pointer; }
 .pill.dim { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin: 12px 0 18px; border-radius: 14px; background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); font-size: 14px; }
 .banner button { margin-left: auto; background: none; border: none; color: inherit; font-size: 20px; }
-
 /* ================= LANDING ================= */
 .lp-hero { max-width: 1180px; margin: 0 auto; padding: 72px 24px 56px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
 .lp-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--brand); background: var(--brand-soft); padding: 7px 14px; border-radius: 99px; margin-bottom: 20px; }
@@ -103,7 +99,6 @@ button { font-family: inherit; cursor: pointer; }
 .lp-stats { display: flex; gap: 36px; }
 .lp-stats strong { display: block; font: 700 28px "Space Grotesk"; }
 .lp-stats span { color: var(--muted); font-size: 13.5px; }
-
 .lp-mock { position: relative; padding: 30px 26px 44px 10px; }
 .lp-mock-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: var(--shadow), 0 30px 60px rgba(30, 40, 90, 0.08); }
 .lp-mock-top { display: flex; gap: 6px; margin-bottom: 18px; }
@@ -125,7 +120,6 @@ button { font-family: inherit; cursor: pointer; }
 .lp-float.f2 { bottom: -8px; left: 6px; animation-delay: -1.5s; }
 .lp-float.f3 { bottom: -8px; right: 24px; animation-delay: -3s; }
 @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-
 .lp-section { max-width: 1180px; margin: 0 auto; padding: 56px 24px; }
 .lp-head { text-align: center; max-width: 620px; margin: 0 auto 38px; }
 .lp-kicker { display: inline-block; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand); margin-bottom: 10px; }
@@ -143,7 +137,6 @@ button { font-family: inherit; cursor: pointer; }
 .lp-band h2 { font-size: clamp(26px, 3.4vw, 38px); margin-bottom: 8px; }
 .lp-band p { opacity: 0.9; margin-bottom: 24px; }
 .landing { display: flex; flex-direction: column; }
-
 /* ================= FORM ================= */
 .form { display: flex; flex-direction: column; gap: 18px; }
 .form-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
@@ -168,7 +161,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--brand); backgrou
 .chip:hover { color: var(--text); border-color: var(--brand); }
 .chip.on { background: var(--grad); color: var(--on-brand); border-color: transparent; font-weight: 600; box-shadow: 0 6px 14px color-mix(in srgb, var(--brand) 30%, transparent); }
 .has-error .chips { outline: 1px solid var(--bad); outline-offset: 6px; border-radius: 12px; }
-
 /* ================= GENERATING ================= */
 .generating { text-align: center; padding: 58px 24px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .orb { width: 72px; height: 72px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; color: var(--on-brand); animation: pulse 1.6s ease-in-out infinite; }
@@ -178,7 +170,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--brand); backgrou
 .generating li.now { color: var(--text); font-weight: 600; }
 .generating li.done { color: var(--good); }
 .generating .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); margin: 0 4.5px; }
-
 /* ================= STRATEGY ================= */
 .strategy { display: flex; flex-direction: column; gap: 18px; }
 .result-bar { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; align-items: center; }
@@ -212,7 +203,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--brand); backgrou
 .type p { font-size: 13.5px; line-height: 1.5; }
 .type small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
 .next { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; justify-content: center; margin-top: 6px; }
-
 /* ================= HISTORY ================= */
 .history { display: flex; flex-direction: column; gap: 12px; }
 .h-item { display: flex; align-items: center; gap: 16px; padding: 18px 22px; cursor: pointer; transition: 0.15s; }
@@ -222,11 +212,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--brand); backgrou
 .chev { color: var(--muted); }
 .empty { text-align: center; padding: 56px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .empty h3 { color: var(--text); }
-
 /* ================= FOOTER ================= */
 .footer { border-top: 1px solid var(--line); padding: 22px 0; color: var(--muted); font-size: 13px; }
 .footer .container { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-
 /* ================= RESPONSIVE ================= */
 @media (max-width: 960px) {
   .lp-hero { grid-template-columns: 1fr; padding-top: 44px; }
@@ -242,3 +230,36 @@ input:focus, textarea:focus, select:focus { border-color: var(--brand); backgrou
   .h-item { flex-wrap: wrap; }
   .lp-float.f2 { left: 0; }
 }
+/* ================= PHASE 2: CONTENT STUDIO ================= */
+.cs { display: flex; flex-direction: column; gap: 18px; }
+.cs-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.cs-gen { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
+.cs-gen h3 { font-size: 17px; margin-bottom: 12px; }
+.cs-gen-actions { display: flex; align-items: flex-end; gap: 14px; }
+.cs-gen-actions select { width: 84px; }
+.cs-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.cs-tabs button { display: inline-flex; align-items: center; gap: 7px; background: none; border: none; color: var(--muted); font: 600 14px Inter; padding: 10px 16px; border-radius: 11px; transition: 0.15s; }
+.cs-tabs button:hover { color: var(--text); background: var(--surface2); }
+.cs-tabs button.on { background: var(--grad); color: var(--on-brand); box-shadow: 0 8px 18px color-mix(in srgb, var(--brand) 30%, transparent); }
+.cs-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cs-head p { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.banner.warn { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 45%, transparent); color: var(--warn); }
+.cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; align-items: start; }
+.vc { display: flex; flex-direction: column; gap: 14px; padding: 22px; transition: 0.2s; }
+.vc:hover { transform: translateY(-2px); }
+.vc.selected { border-color: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent), var(--shadow); }
+.vc header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.vc-eyebrow { display: block; font: 700 11.5px Inter; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand); }
+.vc-angle { display: block; font: 700 18px "Space Grotesk"; margin-top: 2px; }
+.vc-badge { display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--good) 14%, var(--surface)); color: var(--good); white-space: nowrap; }
+.vc-body { display: flex; flex-direction: column; gap: 14px; transition: opacity 0.2s; } .vc-body.dim { opacity: 0.35; }
+.vc-field { border-top: 1px solid var(--line); padding-top: 10px; }
+.vc-field-head { display: flex; justify-content: space-between; align-items: center; font: 700 11px Inter; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.vc-field p { margin-top: 3px; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; }
+.vc-field p.vc-lead { font: 600 16.5px/1.45 "Space Grotesk"; }
+.vc-field .tags { margin-top: 6px; }
+.vc-frames { margin-top: 6px; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.vc-frames strong, .vc-frames em { display: block; } .vc-frames em { color: var(--muted); font-size: 13px; margin: 2px 0 4px; font-style: normal; }
+.vc-foot { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: auto; }
+.btn.vc-picked { background: color-mix(in srgb, var(--good) 14%, var(--surface)); border-color: var(--good); color: var(--good); }
+@media (max-width: 760px) { .cs-gen-actions { width: 100%; } .cs-gen-actions .btn { flex: 1; } .cs-grid { grid-template-columns: 1fr; } }

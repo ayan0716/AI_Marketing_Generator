@@ -5,21 +5,19 @@ import Landing from "./components/Landing.jsx";
 import CampaignForm from "./components/CampaignForm.jsx";
 import StrategyView, { ErrorBanner } from "./components/StrategyView.jsx";
 import History from "./components/History.jsx";
-
+import ContentStudio from "./components/ContentStudio.jsx";
 const STEPS = [
   "Analysing your product brief",
   "Profiling the target audience",
   "Crafting the campaign idea",
   "Structuring the marketing strategy",
 ];
-
 const THEMES = [
   { id: "blue", label: "SaaS Blue", color: "#3b5bfd" },
   { id: "green", label: "Fresh Green", color: "#16a34a" },
   { id: "orange", label: "Warm Orange", color: "#f97316" },
   { id: "dark", label: "Midnight", color: "#19e3a1" },
 ];
-
 function Generating() {
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -41,13 +39,11 @@ function Generating() {
     </div>
   );
 }
-
 function loadTheme() {
   try { return localStorage.getItem("mm-theme") || "blue"; } catch { return "blue"; }
 }
-
 export default function App() {
-  const [view, setView] = useState("home"); // home | create | result | history
+  const [view, setView] = useState("home"); // home | create | result | content | history
   const [options, setOptions] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -60,33 +56,26 @@ export default function App() {
   const [testing, setTesting] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
   const [menu, setMenu] = useState(false);
-
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("mm-theme", theme); } catch { /* ignore */ }
   }, [theme]);
-
   useEffect(() => {
     api.options().then(setOptions).catch((e) => setError(e.message));
     api.health().then(setHealth).catch(() => setHealth({ status: "down" }));
   }, []);
-
   const loadHistory = useCallback(async () => {
     setHistLoading(true);
     try { setHistory(await api.listCampaigns()); } catch (e) { setError(e.message); }
     setHistLoading(false);
   }, []);
-
   useEffect(() => { if (view === "history") loadHistory(); }, [view, loadHistory]);
-
   const testLlm = async () => {
     setTesting(true);
     try { setLlm(await api.llmTest()); } catch (e) { setLlm({ ok: false, error: e.message }); }
     setTesting(false);
   };
-
   const go = (v) => { setView(v); setError(""); setMenu(false); window.scrollTo({ top: 0 }); };
-
   const generate = async (payload) => {
     setError(""); setFieldErrors({}); setLoading(true);
     try {
@@ -98,24 +87,21 @@ export default function App() {
     }
     setLoading(false);
   };
-
   const openCampaign = async (id) => {
     try { setResult(await api.getCampaign(id)); go("result"); } catch (e) { setError(e.message); }
   };
-
   const remove = async (id) => {
     if (!confirm("Delete this campaign and its strategy?")) return;
     try { await api.deleteCampaign(id); setHistory((h) => h.filter((c) => c.id !== id)); } catch (e) { setError(e.message); }
   };
-
   const dbOk = health?.status === "ok";
   const llmCls = llm ? (llm.ok ? "ok" : "bad") : "";
   const titles = {
     create: ["Create a marketing strategy", "Enter product and campaign details to generate a structured, AI-powered strategy."],
     result: ["Your marketing strategy", "Structured strategy ready to power content generation."],
+    content: ["Platform content", "Turn the strategy into Instagram, LinkedIn, Facebook and YouTube content. Compare variations, copy or regenerate."],
     history: ["Campaign history", "Previously generated campaigns stored in MongoDB."],
   };
-
   return (
     <div className="app">
       <header className="nav">
@@ -123,13 +109,11 @@ export default function App() {
           <button className="brand" onClick={() => go("home")}>
             <span className="logo"><Wand2 size={17} /></span> MarketMind<b>AI</b>
           </button>
-
           <nav className={`links ${menu ? "open" : ""}`}>
             <button className={view === "home" ? "on" : ""} onClick={() => go("home")}>Home</button>
-            <button className={view === "create" || view === "result" ? "on" : ""} onClick={() => go("create")}>New campaign</button>
+            <button className={view === "create" || view === "result" || view === "content" ? "on" : ""} onClick={() => go("create")}>New campaign</button>
             <button className={view === "history" ? "on" : ""} onClick={() => go("history")}>History</button>
           </nav>
-
           <div className="nav-right">
             <div className="themes" role="group" aria-label="Theme">
               {THEMES.map((t) => (
@@ -154,27 +138,23 @@ export default function App() {
         </div>
         {llm && !llm.ok && <div className="container"><ErrorBanner message={llm.error || "LLM connection failed."} onClose={() => setLlm(null)} /></div>}
       </header>
-
       {view === "home" && <Landing onStart={() => go("create")} onHistory={() => go("history")} />}
-
       {view !== "home" && (
         <main className="container page">
           <div className="page-head">
             <h1>{titles[view][0]}</h1>
             <p className="muted">{titles[view][1]}</p>
           </div>
-
           {error && <ErrorBanner message={error} onClose={() => setError("")} />}
-
           {view === "create" && options && !loading && (
             <CampaignForm options={options} loading={loading} serverErrors={fieldErrors} onSubmit={generate} />
           )}
           {view === "create" && loading && <Generating />}
-          {view === "result" && result && <StrategyView result={result} onNew={() => go("create")} />}
+          {view === "result" && result && <StrategyView result={result} onNew={() => go("create")} onContent={() => go("content")} />}
+          {view === "content" && result && <ContentStudio campaign={result.campaign} onBack={() => go("result")} onError={setError} />}
           {view === "history" && <History items={history} loading={histLoading} onOpen={openCampaign} onDelete={remove} />}
         </main>
       )}
-
       <footer className="footer">
         <div className="container">
           <span>© 2026 MarketMind AI · Generative AI Internship Project</span>
