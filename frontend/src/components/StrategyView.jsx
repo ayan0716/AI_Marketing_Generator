@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Lightbulb, Users, Star, Mic2, MousePointerClick, LayoutGrid, BarChart3,
-  Copy, Download, Check, Plus, AlertTriangle, Ban, CheckCircle2, Megaphone, ArrowRight,
+  Copy, Download, Check, Plus, ImagePlus, AlertTriangle, Ban, CheckCircle2, Megaphone, ArrowRight,
 } from "lucide-react";
 function Card({ icon: Icon, title, children, className = "" }) {
   return (
@@ -17,7 +17,7 @@ const List = ({ items }) => (
 const Tags = ({ items, kind = "" }) => (
   <div className="tags">{items.map((i, n) => <span key={n} className={`tag ${kind}`}>{i}</span>)}</div>
 );
-export default function StrategyView({ result, onNew, onContent: onContentProp }) {
+export default function StrategyView({ result, onNew, onContent: onContentProp, onCreative }) {
   // Diagnostic: if App.jsx was not updated, say so instead of silently doing nothing.
   const onContent = onContentProp || (() => alert("App.jsx is not updated: StrategyView did not receive the onContent prop. Replace src/App.jsx with the Phase 2 version."));
   const { campaign, strategy } = result;
@@ -55,6 +55,7 @@ export default function StrategyView({ result, onNew, onContent: onContentProp }
           <button className="btn ghost sm" onClick={download}><Download size={15} /> Download</button>
           <button className="btn sm" onClick={onNew}><Plus size={15} /> New campaign</button>
           <button className="btn primary sm" onClick={goContent}><Megaphone size={15} /> Generate content</button>
+          {onCreative && <button className="btn primary sm" onClick={onCreative}><ImagePlus size={15} /> Generate visuals</button>}
         </div>
       </div>
       <section className="hero">
@@ -112,7 +113,12 @@ export default function StrategyView({ result, onNew, onContent: onContentProp }
       <button className="btn primary lg" onClick={goContent}>
         <Megaphone size={18} /> Turn this strategy into platform content <ArrowRight size={17} />
       </button>
-      <p className="next"><Lightbulb size={14} /> This strategy is saved and drives the Phase 2 content generation.</p>
+      {onCreative && (
+        <button className="btn lg" onClick={onCreative}>
+          <ImagePlus size={18} /> Turn this strategy into AI visual creatives <ArrowRight size={17} />
+        </button>
+      )}
+      <p className="next"><Lightbulb size={14} /> This strategy is saved and drives the content (Phase 2) and image creative (Phase 3) generation.</p>
     </div>
   );
 }

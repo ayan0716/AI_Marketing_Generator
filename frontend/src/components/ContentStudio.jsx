@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw, Sparkles, AlertTriangle, ArrowLeft, Instagram, Linkedin, Facebook, Youtube, Film, Check } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles, AlertTriangle, ArrowLeft, Instagram, Linkedin, Facebook, Youtube, Film, Check, ImagePlus } from "lucide-react";
 import { api } from "../api.js";
 import VariationCard from "./VariationCard.jsx";
 
@@ -27,7 +27,7 @@ function Writing({ n }) {
   );
 }
 
-export default function ContentStudio({ campaign, onBack, onError }) {
+export default function ContentStudio({ campaign, onBack, onCreative, onError }) {
   const id = campaign.id;
   const [platforms, setPlatforms] = useState([]);
   const [chosen, setChosen] = useState([]);
@@ -93,7 +93,8 @@ export default function ContentStudio({ campaign, onBack, onError }) {
     <div className="cs">
       <div className="cs-top">
         <button className="btn sm" onClick={onBack}><ArrowLeft size={14} /> Back to strategy</button>
-        <div className="meta"><span className="pill">{campaign.product_name}</span><span className="pill dim">{campaign.tone}</span><span className="pill dim">{campaign.language}</span></div>
+        <div className="meta"><span className="pill">{campaign.product_name}</span><span className="pill dim">{campaign.tone}</span><span className="pill dim">{campaign.language}</span>
+          {onCreative && <button className="btn primary sm" onClick={onCreative}><ImagePlus size={14} /> Create visuals</button>}</div>
       </div>
 
       <section className="card cs-gen">

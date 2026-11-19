@@ -10,13 +10,17 @@ import database
 import llm
 from config import get_settings
 from content_routes import router as content_router
+from fastapi.staticfiles import StaticFiles
+import image_providers
+import storage
+from image_routes import router as image_router
 from schemas import LANGUAGES, CampaignInput, Objective, Platform, Tone
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await database.connect()
     yield
     await database.disconnect()
-app = FastAPI(title="AI Marketing Content Generator", version="2.0.0-phase2", lifespan=lifespan)
+app = FastAPI(title="AI Marketing Content Generator", version="3.0.0-phase3", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_list,
@@ -24,7 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(content_router)  # Phase 2
-
+app.include_router(image_router)  # Phase 3
+app.mount("/api/media", StaticFiles(directory=str(storage.root())), name="media")  # generated images
 
 # ---------- helpers ----------
 def _oid(value: str) -> ObjectId:
@@ -51,7 +56,8 @@ async def validation_handler(_: Request, exc: RequestValidationError):
 async def health():
     s = get_settings()
     await database.get_db().command("ping")
-    return {"status": "ok", "database": "mongodb (mock)" if s.use_mock_db else "mongodb", "llm_provider": s.llm_provider}
+    return {"status": "ok", "database": "mongodb (mock)" if s.use_mock_db else "mongodb", "llm_provider": s.llm_provider,
+            "image_provider": image_providers.provider_status()}
 @app.get("/api/llm/test")
 async def llm_test():
     """Verifies the first LLM API request works (Phase 1, Step 6)."""
@@ -129,3 +135,5 @@ async def delete_campaign(campaign_id: str):
         raise HTTPException(status_code=404, detail="Campaign not found.")
     await db.strategies.delete_many({"campaign_id": oid})
     await db.contents.delete_many({"campaign_id": oid})
+    await db.creatives.delete_many({"campaign_id": oid})  # Phase 3
+    storage.delete_campaign_files(campaign_id)

@@ -6,6 +6,7 @@ import CampaignForm from "./components/CampaignForm.jsx";
 import StrategyView, { ErrorBanner } from "./components/StrategyView.jsx";
 import History from "./components/History.jsx";
 import ContentStudio from "./components/ContentStudio.jsx";
+import CreativeStudio from "./components/CreativeStudio.jsx";
 const STEPS = [
   "Analysing your product brief",
   "Profiling the target audience",
@@ -43,7 +44,7 @@ function loadTheme() {
   try { return localStorage.getItem("mm-theme") || "blue"; } catch { return "blue"; }
 }
 export default function App() {
-  const [view, setView] = useState("home"); // home | create | result | content | history
+  const [view, setView] = useState("home"); // home | create | result | content | creative | history
   const [options, setOptions] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -100,6 +101,7 @@ export default function App() {
     create: ["Create a marketing strategy", "Enter product and campaign details to generate a structured, AI-powered strategy."],
     result: ["Your marketing strategy", "Structured strategy ready to power content generation."],
     content: ["Platform content", "Turn the strategy into Instagram, LinkedIn, Facebook and YouTube content. Compare variations, copy or regenerate."],
+    creative: ["AI visual creatives", "Turn the strategy into Instagram, LinkedIn, Facebook and YouTube visuals. Preview concepts, pick your favourite, or regenerate with new instructions."],
     history: ["Campaign history", "Previously generated campaigns stored in MongoDB."],
   };
   return (
@@ -111,7 +113,7 @@ export default function App() {
           </button>
           <nav className={`links ${menu ? "open" : ""}`}>
             <button className={view === "home" ? "on" : ""} onClick={() => go("home")}>Home</button>
-            <button className={view === "create" || view === "result" || view === "content" ? "on" : ""} onClick={() => go("create")}>New campaign</button>
+            <button className={view === "create" || view === "result" || view === "content" || view === "creative" ? "on" : ""} onClick={() => go("create")}>New campaign</button>
             <button className={view === "history" ? "on" : ""} onClick={() => go("history")}>History</button>
           </nav>
           <div className="nav-right">
@@ -150,8 +152,9 @@ export default function App() {
             <CampaignForm options={options} loading={loading} serverErrors={fieldErrors} onSubmit={generate} />
           )}
           {view === "create" && loading && <Generating />}
-          {view === "result" && result && <StrategyView result={result} onNew={() => go("create")} onContent={() => go("content")} />}
-          {view === "content" && result && <ContentStudio campaign={result.campaign} onBack={() => go("result")} onError={setError} />}
+          {view === "result" && result && <StrategyView result={result} onNew={() => go("create")} onContent={() => go("content")} onCreative={() => go("creative")} />}
+          {view === "content" && result && <ContentStudio campaign={result.campaign} onBack={() => go("result")} onCreative={() => go("creative")} onError={setError} />}
+          {view === "creative" && result && <CreativeStudio campaign={result.campaign} onBack={() => go("content")} onError={setError} />}
           {view === "history" && <History items={history} loading={histLoading} onOpen={openCampaign} onDelete={remove} />}
         </main>
       )}

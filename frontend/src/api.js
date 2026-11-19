@@ -41,4 +41,20 @@ export const api = {
     request(`/campaigns/${id}/content/${platform}/regenerate`, { method: "POST", body: JSON.stringify(body) }),
   selectVariation: (id, platform, index) =>
     request(`/campaigns/${id}/content/${platform}/select`, { method: "PUT", body: JSON.stringify({ index }) }),
+  // ---- Phase 3: AI image creatives ----
+  creativeFormats: () => request("/creatives/formats"),
+  listCreatives: (id) => request(`/campaigns/${id}/creatives`),
+  generateCreatives: (id, formats, concepts, useProduct) =>
+    request(`/campaigns/${id}/creatives`, { method: "POST", body: JSON.stringify({ formats, concepts, use_product_image: useProduct }) }),
+  reviseCreative: (id, fmt, cid, body) =>
+    request(`/campaigns/${id}/creatives/${fmt}/${cid}/regenerate`, { method: "POST", body: JSON.stringify(body) }),
+  retryCreative: (id, fmt, cid) => request(`/campaigns/${id}/creatives/${fmt}/${cid}/retry`, { method: "POST" }),
+  selectCreative: (id, fmt, cid) =>
+    request(`/campaigns/${id}/creatives/${fmt}/select`, { method: "PUT", body: JSON.stringify({ concept_id: cid }) }),
+  useVersion: (id, fmt, cid, vid) =>
+    request(`/campaigns/${id}/creatives/${fmt}/${cid}/version`, { method: "PUT", body: JSON.stringify({ version_id: vid }) }),
+  getProductImage: (id) => request(`/campaigns/${id}/product-image`),
+  uploadProductImage: (id, dataUrl) =>
+    request(`/campaigns/${id}/product-image`, { method: "PUT", body: JSON.stringify({ data_url: dataUrl }) }),
+  deleteProductImage: (id) => request(`/campaigns/${id}/product-image`, { method: "DELETE" }),
 };

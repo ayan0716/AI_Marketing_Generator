@@ -8,7 +8,7 @@ const FEATURES = [
   { icon: Layers, title: "Structured strategy", text: "Campaign idea, selling points, tone and CTA in a clean, reusable format." },
   { icon: Languages, title: "12 languages", text: "Generate strategies in English, Urdu, Arabic, Spanish and more." },
   { icon: Zap, title: "Multi-platform", text: "Tuned for Instagram, LinkedIn, TikTok, YouTube, Email, Google Ads and blogs." },
-  { icon: Database, title: "Saved in MongoDB", text: "Every campaign and strategy is stored so later phases can build on it." },
+  { icon: Database, title: "AI image creatives", text: "Multiple visual concepts per platform, with your product photo, regenerated on demand." },
   { icon: ShieldCheck, title: "Validated input", text: "Smart validation keeps bad or incomplete briefs from reaching the AI." },
 ];
 

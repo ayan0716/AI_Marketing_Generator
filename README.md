@@ -1,88 +1,33 @@
-<<<<<<< HEAD
-# MarketMind AI - AI Marketing Content Generator (Phase 1)
+# MarketMind AI - Phase 3: AI Image Generation & Creative Generation
 
-Full-stack GenAI app with a modern landing page, 4 switchable themes (Blue, Green, Orange, Midnight) and a dashboard UI: **React (Vite)** frontend, **FastAPI** backend, **MongoDB** database, pluggable **LLM** (Claude / OpenAI / Gemini / mock).
+Phases 1 (strategy) and 2 (platform content) are unchanged. Phase 3 adds a visual-creative workflow.
 
-Phase 1 turns a product + campaign brief into a **structured marketing strategy** (campaign idea, target audience,
-key selling points, content tone, call-to-action, suggested content types, success metrics) that later phases use to generate content.
-
-## Structure
+## Run
 ```
-backend/    FastAPI app
-  main.py      REST endpoints + validation error handler
-  schemas.py   Pydantic input validation + strategy schema
-  prompts.py   Structured strategy prompt
-  llm.py       LLM client (anthropic | openai | gemini | mock), JSON parsing + retry
-  database.py  MongoDB (Motor) + indexes
-  test_api.py  Pytest tests
-frontend/   React UI (form, validation, strategy view, history)
-docker-compose.yml   Optional local MongoDB
+cd backend && pip install -r requirements.txt && uvicorn main:app --reload      # http://127.0.0.1:8000
+cd frontend && npm install && npm run dev                                        # http://localhost:5173
 ```
-
-## Run it
-### 1. Backend
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env        # then edit .env (see below)
-uvicorn main:app --reload --port 8000
+Keep your existing `backend/.env`. Add (optional - default is offline `mock`):
 ```
-Edit `.env`:
-- **Database:** set `MONGODB_URI` (MongoDB Atlas string, or `mongodb://localhost:27017` after `docker compose up -d`).
-  No MongoDB yet? Set `USE_MOCK_DB=true` for an in-memory database.
-- **LLM:** set `LLM_PROVIDER` (`anthropic`, `openai`, `gemini`) and the matching `*_API_KEY`.
-  Gemini has a free tier. `LLM_PROVIDER=mock` works with no key.
-
-### 2. Frontend
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
+IMAGE_PROVIDER=gemini        # or openai / mock
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 ```
+Restart the backend after editing `.env`. Tests: `cd backend && pytest` (50 tests).
 
-### 3. Verify
-- Click **Test LLM connection** in the sidebar (calls `GET /api/llm/test`) - this is the "first API request" check.
-- Fill the form (or **Fill sample**) and generate a strategy.
-- Tests: `cd backend && pytest`
-- API docs: http://localhost:8000/docs
+## Phase 3 step -> code
+| Step | Where |
+|---|---|
+| 1-2 Strategy -> platform-specific image prompts | `image_prompts.py` (art-director prompt + `build_final_prompt`), `image_schemas.py` (`FORMAT_SPECS`: aspect, size, audience, composition rules) |
+| 3 Image API integration | `image_providers.py` (Gemini, OpenAI, offline mock) |
+| 4 Multiple concepts per campaign | `image_service.generate_concepts` - 1-4 concepts, each a different style direction |
+| 5 Formats | Instagram Post 1:1, Story 9:16, LinkedIn 1.91:1, Facebook Ad 4:5, YouTube Thumbnail 16:9 |
+| 6 Product image | `PUT /api/campaigns/{id}/product-image`; sent as reference image to Gemini / OpenAI edits; composited by mock |
+| 7 Preview + select | `CreativeStudio.jsx`, `CreativeCard.jsx` (grid, lightbox, select, download) |
+| 8 Regenerate with changes | "Edit & regenerate" (background / style / composition / tone + free text); every version is kept |
+| 9 Errors | `ImageError` kinds: rate_limit, quota, auth, config, safety, invalid_response, timeout, network, server, bad_request. Retries with backoff, per-image Retry, previous image kept on failed revision |
 
-## API
-| Method | Path | Purpose |
-|---|---|---|
-| GET | /api/health | DB + provider status |
-| GET | /api/llm/test | Verify LLM API works |
-| GET | /api/options | Form options |
-| POST | /api/strategies | Brief -> strategy (saved) |
-| GET | /api/campaigns | History |
-| GET/DELETE | /api/campaigns/{id} | Open / delete |
+## New API
+`GET /api/creatives/formats` · `GET|POST /api/campaigns/{id}/creatives` · `POST .../creatives/{format}/{concept}/regenerate` ·
+`POST .../retry` · `PUT .../creatives/{format}/select` · `PUT .../{concept}/version` · `GET|PUT|DELETE /api/campaigns/{id}/product-image`
 
-## MongoDB collections
-`users`, `products`, `campaigns`, `strategies` (JSON strategy + provider/model), `contents` (reserved for Phase 2).
-=======
-# ayan-khuram-084bb8-generative-ai-dev
-
-Welcome, Ayan Khuram! 👋
-
-This is your private repository for **Generative AI** at Big Brains Learning.
-
-## What to do with this repo
-
-- Clone this repository to your local machine and use it to manage and submit your codebase for this project.
-- Commit your work regularly as you progress — this repo is where the Big Brains team reviews your code.
-- Push your changes here so your mentors can track your progress and give feedback.
-
-```bash
-git clone https://github.com/Big-Brains-Learning/ayan-khuram-084bb8-generative-ai-dev.git
-```
-
-## Branches
-
-A `dev` branch has already been created for you — please do your day-to-day development work there (or in your own feature branches off of it) rather than committing straight to `main`.
-
-## Code review
-
-The Big Brains team will review your code directly in this repository. Make sure your commits are pushed here so your submissions and progress are visible.
-
-Good luck, and happy coding!
->>>>>>> f9b5946c781a65e47305ea17a6061f8d6d399ed6
+Images are stored on disk in `backend/storage/` (served at `/api/media/...`); MongoDB keeps metadata in the new `creatives` collection.

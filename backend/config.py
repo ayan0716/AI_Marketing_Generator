@@ -1,10 +1,10 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
 
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_db: str = "ai_marketing"
@@ -15,20 +15,32 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-5-5"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
-    gemini_fallback_models: str = ""
+
+    # Accepts GEMINI_API_KEY or GOOGLE_API_KEY in .env
+    gemini_api_key: str = Field(default="", validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"))
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_fallback_models: str = "gemini-2.5-pro"
 
     cors_origins: str = "http://localhost:5173"
 
-    gemini_fallback_models: str = ""
+    # ---------- Phase 3: image generation ----------
+    image_provider: str = "mock"  # gemini | openai | mock
+    gemini_image_model: str = "gemini-2.5-flash-image"
+    gemini_image_fallback_models: str = ""  # comma separated, tried when the first model fails
+    openai_image_model: str = "gpt-image-1"
+    openai_image_quality: str = "medium"  # low | medium | high
+    storage_dir: str = "storage"  # generated creatives + uploaded product images live here
+    max_upload_mb: int = 5
 
-    cors_origins: str = "http://localhost:5173"
+    @field_validator("gemini_api_key", "anthropic_api_key", "openai_api_key", mode="before")
+    @classmethod
+    def _clean_key(cls, v):
+        # remove accidental spaces / quotes copied into .env
+        return v.strip().strip('"').strip("'").strip() if isinstance(v, str) else v
 
     @property
     def cors_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-
 
 @lru_cache
 def get_settings() -> Settings:
