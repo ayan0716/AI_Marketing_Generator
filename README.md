@@ -1,57 +1,101 @@
-# Phase 4 - AI Marketing Campaign Agent & Automation
+# AI Marketing Content Generator
 
-One campaign brief now drives the whole workflow automatically:
+> Enter a short campaign brief and an AI agent plans the campaign, writes platform-specific copy and generates the visual creatives, all saved in a searchable history.
 
-```
-brief -> strategy -> AI campaign planner -> [your approval, optional] -> platform copy
-      -> image prompts -> generated visuals -> saved campaign (history)
-```
+**Live demo:** `https://<your-app>.onrender.com` · **Demo video:** `<link>` · **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Phase 4 **reuses** the earlier phases (Phase 1 strategy, Phase 2 copy, Phase 3 prompts + image API) and stores results
-in the same collections, so the Content Studio and Visual Studio still open every agent campaign.
+![Workflow](docs/screenshots/01-brief.png)
 
-## What was added (by step)
+## Features
 
-| Step | Where |
+| Phase | What it does |
 |---|---|
-| 1 Workflow from the brief | `POST /api/agent/runs`, `agent_service.py` (background run, "Campaign agent" page) |
-| 2 Strategy first | `strategy` stage (Phase 1 `llm.generate_strategy`) |
-| 3 Platform copy from the strategy | `copy` stage (Phase 2 generator) + `agent_extras.py` (reel concept, promo caption) |
-| 4 Image prompts per asset | `image_prompts` stage (Phase 3 prompt writer); shown in the run panel |
-| 5 Visuals via the image API | `visuals` stage (Phase 3 providers) |
-| 6 No manual stepping | one click; live progress timeline (polls `GET /api/agent/runs/{id}`) |
-| 7 AI campaign planner | `agent_planner.py`: the LLM picks assets from a catalog, output is validated, rule-based fallback. Instagram -> post, story, reel concept, promo caption |
-| 8 Campaign history | `GET /api/agent/history`, `GET /api/agent/campaigns/{id}/workspace`, redesigned History page (thumbnail, counts, search) |
-| 9 Regeneration at every level | `POST /api/agent/campaigns/{id}/regenerate` with `scope` = `strategy` / `caption` / `image` / `campaign` (plus `plan` for campaigns made in Phases 1-3) |
-| 10 Safeguards | `agent_guard.py` allow-list, plan-approval pause, per-asset approval, confirmed export, audit log |
+| 1 Strategy | Brief -> validated, structured marketing strategy (campaign idea, audience, selling points, tone, CTA, content types, KPIs) |
+| 2 Content | Platform-specific copy for Instagram, Facebook, LinkedIn, X, TikTok, YouTube, Email, Google Ads, Blog; several variations, regenerate or pick one |
+| 3 Creatives | LLM writes image prompts, image model renders them; product-photo upload, revisions with version history |
+| 4 Agent | One brief runs the whole workflow automatically: plan -> (optional approval) -> copy -> images -> reel concept + promo caption; partial regeneration, approvals, audited export, history |
+| 5 Production | Quality gate + industry-aware prompts, reuse of existing results, rate limiting, secret masking, request ids, metrics, Docker deployment, CI |
 
-## Safeguards
-- The agent has **no** connection to any social platform, email or ad account. Its actions are an allow-list
-  (`llm.generate`, `image.generate`, `db.read/write`, `storage.write`); `publish_post`, `send_email`, `launch_ad`... raise `ExternalActionBlocked`.
-- "Pause for my approval after planning" stops the run before any copy or image credits are used.
-- Every asset starts as *pending*. Regenerating an asset resets it to *pending*. Only *approved* assets can be exported.
-- Export needs `confirm: true`, returns a file for **manual** posting, and is written to the `agent_audit` collection.
-- Limits: 6 assets, 3 variations, 3 image concepts per run; one active run per campaign.
-- The "Publish to platforms" button is intentionally disabled.
+## Architecture
 
-## Failure behaviour
-Only a failing strategy stops a run. A failing asset is reported on its own card and the rest continue
-(`completed_with_warnings`). A failed image regeneration keeps the previous images. Runs interrupted by a server restart are marked failed.
+![Architecture](docs/architecture.png)
 
-## Run it
-No new environment variables or packages. Same commands as before:
+React (Vite) -> FastAPI -> LLM (Gemini / Claude / OpenAI) and image model (Gemini Image / gpt-image-1) -> MongoDB Atlas + file storage. Details and data flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Tech stack
+
+Frontend: React 18, Vite, lucide-react. Backend: Python 3.12, FastAPI, Pydantic v2, Motor (async MongoDB), httpx. AI: Gemini / Anthropic / OpenAI LLMs with structured JSON output, Gemini Image / gpt-image-1, Pillow (offline mock renderer). Data: MongoDB Atlas. Ops: Docker, Render blueprint, GitHub Actions CI, pytest (100+ offline tests).
+
+## Quick start (local)
+
+```bash
+# 1. backend
+cd backend
+python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                                      # then edit .env (see below)
+uvicorn main:app --reload --port 8000
+
+# 2. frontend (second terminal)
+cd frontend
+npm install
+npm run dev                                               # http://localhost:5173 (proxies /api to :8000)
 ```
-cd backend && uvicorn main:app --reload      # http://127.0.0.1:8000
-cd frontend && npm run dev                   # http://localhost:5173
-cd backend && pytest                         # 78 tests (28 new for Phase 4)
+
+No keys yet? Set `USE_MOCK_DB=true`, `LLM_PROVIDER=mock`, `IMAGE_PROVIDER=mock` and the entire workflow runs offline.
+
+Run the tests: `cd backend && python -m pytest -q` (offline, no secrets). Evaluate quality: `python scripts/evaluate.py` (add `--live` for real providers).
+
+## Environment variables
+
+Full commented list in [`backend/.env.example`](backend/.env.example). The important ones:
+
+| Variable | Purpose |
+|---|---|
+| `MONGODB_URI`, `MONGODB_DB`, `USE_MOCK_DB` | Database (Atlas URI, or in-memory mock) |
+| `LLM_PROVIDER` + `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Text generation |
+| `IMAGE_PROVIDER`, `GEMINI_IMAGE_MODEL`, `OPENAI_IMAGE_MODEL` | Image generation (`mock` = placeholders) |
+| `CORS_ORIGINS` | Allowed browser origins |
+| `ENVIRONMENT=production` | HSTS on, `/docs` off, `/api/metrics` needs a token |
+| `ADMIN_TOKEN` | Header `X-Admin-Token` to read `/api/metrics` |
+| `RATE_LIMIT_PER_MINUTE` | Per-IP limit on AI endpoints (0 = off) |
+| `STRATEGY_CACHE_HOURS` | Identical brief inside the window reuses the saved campaign |
+| `LOG_LEVEL`, `LOG_JSON`, `LOG_FILE` | Logging |
+
+API keys live **only** in backend environment variables. The frontend never receives them, `.env` is git-ignored and secrets are masked in logs and error messages.
+
+## Production hardening (Phase 5)
+
+- **Quality gate** ([strategy_quality.py](backend/strategy_quality.py)): detects repeated points, contradictory word lists, invented statistics, buzzwords, ungrounded output and weak CTAs, then retries once with the exact problems fed back to the model.
+- **Prompt improvements**: industry playbooks (e-commerce, education, restaurant, software, fashion, real estate), objective and platform guidance, hard rules against invented facts.
+- **Fewer paid calls**: identical briefs reuse the saved campaign (`?fresh=true` forces a new one), the frontend caches static lists and shares identical in-flight reads, provider calls are limited to 2 in flight, retries are capped.
+- **Security**: keys server-side only, secret masking, per-IP rate limit on AI routes, body-size limit, security headers, strict CORS, no API docs in production, path-traversal-safe static serving.
+- **Observability**: request ids in every log line and error body, JSON logs, `/api/metrics` (requests, p95 latency, AI calls / errors per provider, recent failures), health endpoint with version.
+- **UX**: progress + step status for the agent run, per-asset errors that never stop other assets, readable messages for rate limits, timeouts, offline and server errors.
+
+## Deployment
+
+One Docker image serves API + frontend. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (Render blueprint included in [render.yaml](render.yaml)).
+
+## Project structure
+
+```
+backend/   main.py, observability.py, strategy_quality.py, llm.py, prompts.py, content_*.py, image_*.py, agent_*.py, tests/, scripts/
+frontend/  React app (src/api.js, components/)
+docs/      ARCHITECTURE, DEPLOYMENT, EVALUATION, LINKEDIN_POST, DEMO_SCRIPT, screenshots/
 ```
 
-## Screenshots to take
-1. Campaign agent page (brief + Agent options + safeguard note)
-2. Run in progress (timeline with the running step)
-3. Plan review (tick "Pause for my approval", then show the asset checklist)
-4. Finished workspace (strategy card, plan sentence, asset cards with copy + image)
-5. Image prompts panel expanded in the run card
-6. Regenerate a single caption / single image, and the strategy-only "strategy changed" banner
-7. Approve & export panel with the disabled Publish button
-8. History page with thumbnails, counts and search
+## Screenshots
+
+| | |
+|---|---|
+| ![Strategy](docs/screenshots/02-strategy.png) | ![Content](docs/screenshots/03-content.png) |
+| ![Creatives](docs/screenshots/04-creatives.png) | ![Agent](docs/screenshots/05-agent-workspace.png) |
+
+## Known limitations
+
+Free hosting sleeps when idle and local image storage is not persistent (use a disk or object storage). There is no user authentication yet (the `users` collection is reserved). Rate limiting is in-memory, per instance.
+
+## License
+Image generation is built for Gemini and OpenAI image models. Because paid image-API access wasn't available, the demo uses the built-in placeholder renderer. Switching is one setting: IMAGE_PROVIDER=gemini or openai.
+MIT
