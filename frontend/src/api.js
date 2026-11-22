@@ -1,29 +1,97 @@
+// API client. Phase 5: timeouts, one automatic retry for reads, cached static lists, friendly messages
+// for rate limits / server errors / offline, and the server's request id so a failure can be found in the logs.
 const BASE = "/api";
+const READ_TIMEOUT_MS = 30_000;
+const WRITE_TIMEOUT_MS = 240_000; // AI generation (text + images) can legitimately take a while
+const STATIC_TTL_MS = 10 * 60_000;
+const STATIC_PATHS = new Set(["/options", "/content/platforms", "/creatives/formats", "/agent/assets", "/agent/safeguards"]);
+
 export class ApiError extends Error {
-  constructor(message, status, fieldErrors = {}) {
+  constructor(message, status, fieldErrors = {}, extra = {}) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.requestId = extra.requestId || null;
+    this.retryAfter = extra.retryAfter || null;
   }
 }
-async function request(path, options = {}) {
-  let res;
+
+const staticCache = new Map(); // path -> { at, data }
+const inflight = new Map(); // GET path -> Promise (identical simultaneous reads share one request)
+
+function friendly(status, detail, retryAfter, requestId) {
+  if (typeof detail === "string" && detail && status < 500) return detail; // the server's message is already readable
+  const ref = requestId ? ` (reference ${requestId})` : "";
+  if (status === 429) return `You are sending requests too quickly. Please wait ${retryAfter || 30}s and try again.`;
+  if (status === 413) return "That file is too large. Please use a smaller image.";
+  if (status === 502 || status === 503 || status === 504)
+    return (typeof detail === "string" && detail ? detail : "The AI service is busy or unavailable. Please try again in a moment.") + ref;
+  if (status >= 500) return `Something went wrong on our side. Please try again${ref}.`;
+  return typeof detail === "string" && detail ? detail : "Something went wrong.";
+}
+
+async function once(path, options, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    res = await fetch(BASE + path, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-    });
-  } catch {
-    throw new ApiError("Cannot reach the server. Is the backend running on port 8000?", 0);
+    return await fetch(BASE + path, { headers: { "Content-Type": "application/json" }, signal: ctrl.signal, ...options });
+  } catch (e) {
+    if (e?.name === "AbortError")
+      throw new ApiError("The request took too long and was stopped. The AI may be busy, please try again.", 0);
+    throw new ApiError(
+      import.meta.env?.DEV
+        ? "Cannot reach the server. Is the backend running on port 8000?"
+        : "Cannot reach the server. Check your internet connection and try again.",
+      0
+    );
+  } finally {
+    clearTimeout(timer);
   }
-  if (res.status === 204) return null;
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = typeof body.detail === "string" ? body.detail : "Something went wrong.";
-    throw new ApiError(msg, res.status, body.errors || {});
-  }
-  return body;
 }
+
+async function request(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const isRead = method === "GET";
+
+  if (isRead && STATIC_PATHS.has(path)) {
+    const hit = staticCache.get(path);
+    if (hit && Date.now() - hit.at < STATIC_TTL_MS) return hit.data; // no request at all
+  }
+  if (isRead && inflight.has(path)) return inflight.get(path);
+
+  const run = async () => {
+    let res;
+    try {
+      res = await once(path, options, isRead ? READ_TIMEOUT_MS : WRITE_TIMEOUT_MS);
+    } catch (e) {
+      if (!isRead || e.status !== 0) throw e;
+      await new Promise((r) => setTimeout(r, 800));
+      res = await once(path, options, READ_TIMEOUT_MS); // reads are safe to retry once; writes are never retried
+    }
+    if (isRead && [502, 503, 504].includes(res.status)) {
+      await new Promise((r) => setTimeout(r, 800));
+      res = await once(path, options, READ_TIMEOUT_MS);
+    }
+    const requestId = res.headers.get("X-Request-ID");
+    if (res.status === 204) return null;
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const retryAfter = Number(res.headers.get("Retry-After")) || null;
+      throw new ApiError(friendly(res.status, body.detail, retryAfter, body.request_id || requestId), res.status, body.errors || {}, {
+        requestId: body.request_id || requestId,
+        retryAfter,
+      });
+    }
+    if (isRead && STATIC_PATHS.has(path)) staticCache.set(path, { at: Date.now(), data: body });
+    return body;
+  };
+
+  if (!isRead) return run();
+  const p = run().finally(() => inflight.delete(path));
+  inflight.set(path, p);
+  return p;
+}
+
 export const api = {
   health: () => request("/health"),
   llmTest: () => request("/llm/test"),

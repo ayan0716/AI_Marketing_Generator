@@ -1,0 +1,19 @@
+# Render Blueprint: New + -> Blueprint -> pick this repo. Secrets (sync: false) are typed in the dashboard, never committed.
+services:
+  - type: web
+    name: ai-marketing-generator
+    runtime: docker
+    plan: free            # free instances sleep after inactivity and lose local files: use a paid plan + disk for real use
+    healthCheckPath: /api/health
+    envVars:
+      - { key: ENVIRONMENT, value: production }
+      - { key: LOG_JSON, value: "true" }
+      - { key: LLM_PROVIDER, value: gemini }
+      - { key: IMAGE_PROVIDER, value: gemini }
+      - { key: MONGODB_DB, value: ai_marketing }
+      - { key: STORAGE_DIR, value: /data/storage }
+      - { key: RATE_LIMIT_PER_MINUTE, value: "20" }
+      - { key: MONGODB_URI, sync: false }
+      - { key: GEMINI_API_KEY, sync: false }
+      - { key: ADMIN_TOKEN, generateValue: true }
+      - { key: CORS_ORIGINS, sync: false }   # e.g. https://ai-marketing-generator.onrender.com

@@ -1,0 +1,20 @@
+flowchart LR
+    U([User / Browser]) -->|brief, approvals| FE[React + Vite frontend<br/>Landing, Form, Studios, Agent workspace]
+    FE -->|"/api (JSON, request-id)"| MW
+
+    subgraph BE[FastAPI backend]
+        MW[Middleware<br/>request id - rate limit<br/>size limit - security headers - logging]
+        MW --> R[Routers<br/>strategies - content - creatives - agent]
+        R --> AG[Campaign agent<br/>planner - workflow - guard rails]
+        R --> SVC[Services<br/>prompts - schemas - quality gate<br/>strategy reuse cache]
+        AG --> SVC
+        MON[Monitoring<br/>/api/metrics - AI call log]
+        MW -.-> MON
+    end
+
+    SVC -->|structured JSON prompts| LLM{{LLM provider<br/>Gemini / Claude / OpenAI}}
+    SVC -->|image prompts| IMG{{Image provider<br/>Gemini Image / gpt-image-1}}
+    SVC <-->|campaigns, strategies, content,<br/>creatives, runs, audit| DB[(MongoDB Atlas)]
+    SVC <-->|PNG files| ST[(Storage / disk<br/>served at /api/media)]
+    FE -. static build served by FastAPI .- BE
+    BE -->|stdout JSON logs| LOG[(Host log viewer)]
