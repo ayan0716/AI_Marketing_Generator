@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Sparkles, Loader2, AlertCircle } from "lucide-react";
-
 const LIMITS = {
   product_name: { min: 2, max: 100, label: "Product name" },
   product_description: { min: 20, max: 2000, label: "Product description" },
   target_audience: { min: 5, max: 500, label: "Target audience" },
 };
-
 const EMPTY = {
   product_name: "",
   product_description: "",
@@ -16,7 +14,6 @@ const EMPTY = {
   tone: "",
   language: "English",
 };
-
 const SAMPLE = {
   product_name: "EcoSip Bottle",
   product_description:
@@ -27,7 +24,6 @@ const SAMPLE = {
   tone: "Friendly",
   language: "English",
 };
-
 function validate(v) {
   const e = {};
   for (const [key, { min, max, label }] of Object.entries(LIMITS)) {
@@ -42,7 +38,6 @@ function validate(v) {
   if (!v.tone) e.tone = "Choose a tone.";
   return e;
 }
-
 function Field({ label, error, hint, children, required = true }) {
   return (
     <div className={`field ${error ? "has-error" : ""}`}>
@@ -58,7 +53,6 @@ function Field({ label, error, hint, children, required = true }) {
     </div>
   );
 }
-
 function Chips({ value, options, onChange }) {
   return (
     <div className="chips">
@@ -70,14 +64,18 @@ function Chips({ value, options, onChange }) {
     </div>
   );
 }
-
-export default function CampaignForm({ options, loading, serverErrors, onSubmit }) {
-  const [v, setV] = useState(EMPTY);
+export default function CampaignForm({
+  options, loading, serverErrors, onSubmit, initial, children,
+  title = "Campaign brief",
+  intro = "Tell us about your product. The AI turns it into a structured marketing strategy.",
+  submitLabel = "Generate marketing strategy",
+  loadingLabel = "Generating strategy...",
+}) {
+  const [v, setV] = useState(initial || EMPTY);
   const [touched, setTouched] = useState({});
   const clientErrors = validate(v);
   const errors = { ...serverErrors };
   for (const k of Object.keys(clientErrors)) if (touched[k] || touched.__all) errors[k] = clientErrors[k];
-
   const set = (k) => (val) => {
     setV((p) => ({ ...p, [k]: val }));
     setTouched((p) => ({ ...p, [k]: true }));
@@ -87,7 +85,6 @@ export default function CampaignForm({ options, loading, serverErrors, onSubmit 
     onChange: (e) => set(k)(e.target.value),
     onBlur: () => setTouched((p) => ({ ...p, [k]: true })),
   });
-
   const submit = (e) => {
     e.preventDefault();
     setTouched({ __all: true });
@@ -99,25 +96,22 @@ export default function CampaignForm({ options, loading, serverErrors, onSubmit 
       target_audience: v.target_audience.trim(),
     });
   };
-
   const count = (k) => (
     <span className={`count ${v[k].length > LIMITS[k].max ? "over" : ""}`}>
       {v[k].length}/{LIMITS[k].max}
     </span>
   );
-
   return (
     <form className="card form" onSubmit={submit} noValidate>
       <div className="form-head">
         <div>
-          <h2>Campaign brief</h2>
-          <p className="muted">Tell us about your product. The AI turns it into a structured marketing strategy.</p>
+          <h2>{title}</h2>
+          <p className="muted">{intro}</p>
         </div>
         <button type="button" className="btn ghost sm" onClick={() => { setV(SAMPLE); setTouched({}); }}>
           Fill sample
         </button>
       </div>
-
       <div className="section-label"><span>1</span> Product</div>
       <div className="grid-2">
         <Field label="Product name" error={errors.product_name}>
@@ -131,7 +125,6 @@ export default function CampaignForm({ options, loading, serverErrors, onSubmit 
         <textarea rows={4} placeholder="Describe what your product is and what it does..." {...text("product_description")} />
         {count("product_description")}
       </Field>
-
       <div className="section-label"><span>2</span> Campaign</div>
       <Field label="Marketing platform" error={errors.platform}>
         <Chips value={v.platform} options={options.platforms} onChange={set("platform")} />
@@ -139,7 +132,6 @@ export default function CampaignForm({ options, loading, serverErrors, onSubmit 
       <Field label="Campaign objective" error={errors.objective}>
         <Chips value={v.objective} options={options.objectives} onChange={set("objective")} />
       </Field>
-
       <div className="section-label"><span>3</span> Voice</div>
       <Field label="Tone" error={errors.tone}>
         <Chips value={v.tone} options={options.tones} onChange={set("tone")} />
@@ -149,9 +141,9 @@ export default function CampaignForm({ options, loading, serverErrors, onSubmit 
           {options.languages.map((l) => <option key={l}>{l}</option>)}
         </select>
       </Field>
-
+      {children}
       <button className="btn primary lg" type="submit" disabled={loading}>
-        {loading ? <><Loader2 size={18} className="spin" /> Generating strategy...</> : <><Sparkles size={18} /> Generate marketing strategy</>}
+        {loading ? <><Loader2 size={18} className="spin" /> {loadingLabel}</> : <><Sparkles size={18} /> {submitLabel}</>}
       </button>
     </form>
   );

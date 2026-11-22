@@ -7,6 +7,8 @@ import StrategyView, { ErrorBanner } from "./components/StrategyView.jsx";
 import History from "./components/History.jsx";
 import ContentStudio from "./components/ContentStudio.jsx";
 import CreativeStudio from "./components/CreativeStudio.jsx";
+import AgentBrief from "./components/AgentBrief.jsx";
+import AgentWorkspace from "./components/AgentWorkspace.jsx";
 const STEPS = [
   "Analysing your product brief",
   "Profiling the target audience",
@@ -44,7 +46,7 @@ function loadTheme() {
   try { return localStorage.getItem("mm-theme") || "blue"; } catch { return "blue"; }
 }
 export default function App() {
-  const [view, setView] = useState("home"); // home | create | result | content | creative | history
+  const [view, setView] = useState("home"); // home | agent | workspace | create | result | content | creative | history
   const [options, setOptions] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -57,6 +59,9 @@ export default function App() {
   const [testing, setTesting] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
   const [menu, setMenu] = useState(false);
+  const [runId, setRunId] = useState(null);           // Phase 4: run being watched
+  const [wsCampaign, setWsCampaign] = useState(null); // Phase 4: saved campaign opened from history
+  const [lastBrief, setLastBrief] = useState(null);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("mm-theme", theme); } catch { /* ignore */ }
@@ -67,7 +72,7 @@ export default function App() {
   }, []);
   const loadHistory = useCallback(async () => {
     setHistLoading(true);
-    try { setHistory(await api.listCampaigns()); } catch (e) { setError(e.message); }
+    try { setHistory((await api.agentHistory()).items); } catch (e) { setError(e.message); }
     setHistLoading(false);
   }, []);
   useEffect(() => { if (view === "history") loadHistory(); }, [view, loadHistory]);
@@ -88,21 +93,36 @@ export default function App() {
     }
     setLoading(false);
   };
-  const openCampaign = async (id) => {
-    try { setResult(await api.getCampaign(id)); go("result"); } catch (e) { setError(e.message); }
+  const startAgent = async (payload) => {
+    setError(""); setFieldErrors({}); setLoading(true);
+    try {
+      const { variations, concepts, generate_images, require_plan_approval, ...brief } = payload;
+      setLastBrief(brief);
+      const run = await api.agentRun(payload);
+      setRunId(run.id); setWsCampaign(null);
+      go("workspace");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 422) setFieldErrors(e.fieldErrors);
+      setError(e.message);
+    }
+    setLoading(false);
   };
+  const openCampaign = (id) => { setWsCampaign(id); setRunId(null); go("workspace"); };
+  const openStudio = async (v, id) => { setResult(await api.getCampaign(id)); go(v); };
   const remove = async (id) => {
-    if (!confirm("Delete this campaign and its strategy?")) return;
+    if (!confirm("Delete this campaign and everything generated for it?")) return;
     try { await api.deleteCampaign(id); setHistory((h) => h.filter((c) => c.id !== id)); } catch (e) { setError(e.message); }
   };
   const dbOk = health?.status === "ok";
   const llmCls = llm ? (llm.ok ? "ok" : "bad") : "";
   const titles = {
+    agent: ["AI campaign agent", "Give the agent one brief. It builds the strategy, plans the assets, writes the copy and image prompts and generates the visuals for you."],
+    workspace: ["Campaign workspace", "Review what the agent created, regenerate any single part, approve assets and export them. Nothing is published automatically."],
     create: ["Create a marketing strategy", "Enter product and campaign details to generate a structured, AI-powered strategy."],
     result: ["Your marketing strategy", "Structured strategy ready to power content generation."],
     content: ["Platform content", "Turn the strategy into Instagram, LinkedIn, Facebook and YouTube content. Compare variations, copy or regenerate."],
     creative: ["AI visual creatives", "Turn the strategy into Instagram, LinkedIn, Facebook and YouTube visuals. Preview concepts, pick your favourite, or regenerate with new instructions."],
-    history: ["Campaign history", "Previously generated campaigns stored in MongoDB."],
+    history: ["Campaign history", "Every campaign you ran is saved with its strategy, copy and visuals. Open one to continue where you left off."],
   };
   return (
     <div className="app">
@@ -113,7 +133,8 @@ export default function App() {
           </button>
           <nav className={`links ${menu ? "open" : ""}`}>
             <button className={view === "home" ? "on" : ""} onClick={() => go("home")}>Home</button>
-            <button className={view === "create" || view === "result" || view === "content" || view === "creative" ? "on" : ""} onClick={() => go("create")}>New campaign</button>
+            <button className={view === "agent" || view === "workspace" ? "on" : ""} onClick={() => go("agent")}>Campaign agent</button>
+            <button className={view === "create" || view === "result" || view === "content" || view === "creative" ? "on" : ""} onClick={() => go("create")}>Step by step</button>
             <button className={view === "history" ? "on" : ""} onClick={() => go("history")}>History</button>
           </nav>
           <div className="nav-right">
@@ -140,7 +161,7 @@ export default function App() {
         </div>
         {llm && !llm.ok && <div className="container"><ErrorBanner message={llm.error || "LLM connection failed."} onClose={() => setLlm(null)} /></div>}
       </header>
-      {view === "home" && <Landing onStart={() => go("create")} onHistory={() => go("history")} />}
+      {view === "home" && <Landing onStart={() => go("agent")} onHistory={() => go("history")} />}
       {view !== "home" && (
         <main className="container page">
           <div className="page-head">
@@ -148,6 +169,13 @@ export default function App() {
             <p className="muted">{titles[view][1]}</p>
           </div>
           {error && <ErrorBanner message={error} onClose={() => setError("")} />}
+          {view === "agent" && options && !loading && (
+            <AgentBrief options={options} loading={loading} serverErrors={fieldErrors} initial={lastBrief} onSubmit={startAgent} />
+          )}
+          {view === "agent" && loading && <Generating />}
+          {view === "workspace" && (
+            <AgentWorkspace key={runId || wsCampaign} runId={runId} campaignId={wsCampaign} onNew={() => go("agent")} onOpenStudio={openStudio} onError={setError} />
+          )}
           {view === "create" && options && !loading && (
             <CampaignForm options={options} loading={loading} serverErrors={fieldErrors} onSubmit={generate} />
           )}

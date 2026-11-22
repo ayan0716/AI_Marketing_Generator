@@ -14,13 +14,16 @@ from fastapi.staticfiles import StaticFiles
 import image_providers
 import storage
 from image_routes import router as image_router
+import agent_service
+from agent_routes import router as agent_router
 from schemas import LANGUAGES, CampaignInput, Objective, Platform, Tone
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await database.connect()
+    db = await database.connect()
+    await agent_service.recover_interrupted(db)  # Phase 4: runs cut off by a restart are marked failed
     yield
     await database.disconnect()
-app = FastAPI(title="AI Marketing Content Generator", version="3.0.0-phase3", lifespan=lifespan)
+app = FastAPI(title="AI Marketing Content Generator", version="4.0.0-phase4", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_list,
@@ -29,8 +32,8 @@ app.add_middleware(
 )
 app.include_router(content_router)  # Phase 2
 app.include_router(image_router)  # Phase 3
+app.include_router(agent_router)  # Phase 4: campaign agent
 app.mount("/api/media", StaticFiles(directory=str(storage.root())), name="media")  # generated images
-
 # ---------- helpers ----------
 def _oid(value: str) -> ObjectId:
     try:
@@ -136,4 +139,6 @@ async def delete_campaign(campaign_id: str):
     await db.strategies.delete_many({"campaign_id": oid})
     await db.contents.delete_many({"campaign_id": oid})
     await db.creatives.delete_many({"campaign_id": oid})  # Phase 3
+    for name in ("agent_runs", "agent_assets", "agent_audit"):  # Phase 4
+        await db[name].delete_many({"campaign_id": oid})
     storage.delete_campaign_files(campaign_id)

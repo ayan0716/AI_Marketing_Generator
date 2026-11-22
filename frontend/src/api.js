@@ -57,4 +57,16 @@ export const api = {
   uploadProductImage: (id, dataUrl) =>
     request(`/campaigns/${id}/product-image`, { method: "PUT", body: JSON.stringify({ data_url: dataUrl }) }),
   deleteProductImage: (id) => request(`/campaigns/${id}/product-image`, { method: "DELETE" }),
+  // ---- Phase 4: campaign agent ----
+  agentAssets: () => request("/agent/assets"),
+  agentSafeguards: () => request("/agent/safeguards"),
+  agentHistory: (q) => request(`/agent/history${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  agentRun: (payload) => request("/agent/runs", { method: "POST", body: JSON.stringify(payload) }),
+  agentGetRun: (id) => request(`/agent/runs/${id}`),
+  agentContinue: (id, assets) => request(`/agent/runs/${id}/continue`, { method: "POST", body: JSON.stringify({ assets }) }),
+  agentCancel: (id) => request(`/agent/runs/${id}/cancel`, { method: "POST" }),
+  agentWorkspace: (id) => request(`/agent/campaigns/${id}/workspace`),
+  agentRegenerate: (id, body) => request(`/agent/campaigns/${id}/regenerate`, { method: "POST", body: JSON.stringify(body) }),
+  agentApprovals: (id, approvals) => request(`/agent/campaigns/${id}/approvals`, { method: "PUT", body: JSON.stringify({ approvals }) }),
+  agentExport: (id, body) => request(`/agent/campaigns/${id}/export`, { method: "POST", body: JSON.stringify(body) }),
 };
